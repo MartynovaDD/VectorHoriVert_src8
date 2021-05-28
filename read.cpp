@@ -1,4 +1,6 @@
 ﻿#include "read.h"
+#include <chrono>
+#include <omp.h>
 
 
 vector<figure*> CRead::ReadFigure(ifstream &File) {
@@ -205,21 +207,27 @@ CImg<unsigned char> CRead::Image(vector<figure*> figures)
     double c[3];
     double n[3];
     double nl[3];
-    double t = 0;
     double D = 0;
+    double t = 0;
     double f[3];
     double tmpclr[3];
     double tmp = 0;
     double* clr;
     double A, B, C;
     double PQRS[4][3];
-#pragma omp parallel for
+    double x0 = 0;
+    double y0 = 0;
+    double z0 = 0;
+
+    auto start = std::chrono::system_clock::now();
+#pragma omp parallel for private(x0, y0, z0, clr, tmpclr, a, c, n, nl, D, f, tmp, A, B, C, PQRS, t)
     for (int i = 0; i < hp; ++i) {
         for (int j = 0; j < wp; ++j) {
+            t = 0;
             for (size_t m = 0; m < figures.size(); ++m) {
-                double x0 = (*(figures[m])).XYZ[0];
-                double y0 = (*(figures[m])).XYZ[1];
-                double z0 = (*(figures[m])).XYZ[2];
+                x0 = (*(figures[m])).XYZ[0];
+                y0 = (*(figures[m])).XYZ[1];
+                z0 = (*(figures[m])).XYZ[2];
                 for (int k = 0; k < 3; ++k) {
                     a[k] = PIX[i][j][k];
                     c[k] = PIX[i][j][k] - cam[k];
@@ -393,6 +401,9 @@ CImg<unsigned char> CRead::Image(vector<figure*> figures)
             t = 0;
         }
     }
+    auto end = std::chrono::system_clock::now();
+    int elapsed_ms = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+    std::cout << "Addition operator runtime is " << elapsed_ms << " ms\n";
     for (size_t i = 0; i < figures.size(); ++i) { delete figures[i]; }
     return img;
 }
